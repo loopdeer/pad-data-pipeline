@@ -246,7 +246,10 @@ class EnEmojiESTextConverter(EmojiBaseTextConverter):
         elif source is not None:
             target_types = SOURCE_FUNCS[source]([target_types]) + ' cards'
         targets = targets_to_str(target_types)
-        output = '({} {} '.format(emoji_dict['bind'], pluralize2(targets, target_count))
+        if target_types == TargetType.awokens or target_types == TargetType.actives:
+            output = '({} '.format(pluralize2(targets, target_count))
+        else:
+            output = '({} {} '.format(emoji_dict['bind'], pluralize2(targets, target_count))
         output += 'for ' + minmax(min_turns, max_turns) + ')'
         return output
 
@@ -460,9 +463,9 @@ class EnEmojiESTextConverter(EmojiBaseTextConverter):
 
     def spinners(self, turns, speed, random_num=None):
         if random_num is None:
-            return '(Specific {}{} for {})'.format(emoji_dict['roulette'], speed, turns)
+            return '(Specific {} {}s for {})'.format(emoji_dict['roulette'], speed / 100, turns)
         else:
-            return "({}{}Random {} for {})".format(emoji_dict['roulette'], random_num, speed, turns)
+            return "({} {} Random at {}s for {})".format(emoji_dict['roulette'], random_num, speed / 100, turns)
 
     def max_hp_change(self, turns, max_hp, percent):
         if percent:
