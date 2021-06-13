@@ -793,7 +793,7 @@
     "series_type": "regular"
   },
   {
-    "name_en": "Latent Awoken",
+    "name_en": "Utility Latent Tamadra",
     "name_ja": "潜在覚醒",
     "name_ko": "잠재각성",
     "series_id": 122,
@@ -906,6 +906,7 @@
     "series_type": "seasonal"
   },
   {
+    "collab_id": 51,
     "name_en": "Crows x Worst Collab",
     "name_ja": "クローズ コラボ",
     "name_ko": "크로우즈 콜라보",
@@ -1477,7 +1478,7 @@
     "name_ja": "Untranslated",
     "name_ko": "Untranslated",
     "series_id": 221,
-    "series_type": "collab"
+    "series_type": "ghcollab"
   },
   {
     "name_en": "Monogatari",
@@ -1737,6 +1738,34 @@
     "name_ja": "Untranslated",
     "name_ko": "Untranslated",
     "series_id": 258,
+    "series_type": "regular"
+  },
+  {
+    "name_en": "Killer Latent Tamadra",
+    "name_ja": "Untranslated",
+    "name_ko": "Untranslated",
+    "series_id": 259,
+    "series_type": "regular"
+  },
+  {
+    "name_en": "Resist Latent Tamadra",
+    "name_ja": "Untranslated",
+    "name_ko": "Untranslated",
+    "series_id": 260,
+    "series_type": "regular"
+  },
+  {
+    "name_en": "Stat Enhance Latent Tamadra",
+    "name_ja": "Untranslated",
+    "name_ko": "Untranslated",
+    "series_id": 261,
+    "series_type": "regular"
+  },
+  {
+    "name_en": "Submarine",
+    "name_ja": "Untranslated",
+    "name_ko": "Untranslated",
+    "series_id": 262,
     "series_type": "regular"
   }
 ]

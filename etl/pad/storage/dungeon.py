@@ -1,5 +1,7 @@
+import os
 from typing import List
 
+from pad.common.utils import classproperty
 from pad.db.sql_item import SimpleSqlItem
 from pad.dungeon.wave_converter import ResultFloor
 from pad.raw_processor.crossed_data import CrossServerDungeon, CrossServerSubDungeon
@@ -7,8 +9,19 @@ from pad.raw_processor.crossed_data import CrossServerDungeon, CrossServerSubDun
 
 class Dungeon(SimpleSqlItem):
     """Dungeon top-level item."""
-    TABLE = 'dungeons'
     KEY_COL = 'dungeon_id'
+
+    @classproperty
+    def TABLE(cls):
+        server = os.environ.get("CURRENT_PIPELINE_SERVER") or ""
+        if server.upper() == "NA":
+            return 'dungeons_na'
+        # elif server.upper() == "JP":
+        #     return 'dungeons_jp'
+        # elif server.upper() == "KR":
+        #    return 'dungeons_kr'
+        else:
+            return 'dungeons'
 
     @staticmethod
     def from_csd(o: CrossServerDungeon) -> 'Dungeon':
@@ -17,7 +30,7 @@ class Dungeon(SimpleSqlItem):
             name_ja=o.jp_dungeon.clean_name,
             name_en=o.na_dungeon.clean_name,
             name_ko=o.kr_dungeon.clean_name,
-            dungeon_type=o.jp_dungeon.full_dungeon_type.value,
+            dungeon_type=o.cur_dungeon.full_dungeon_type.value,
             visible=True)
 
     def __init__(self,
@@ -45,8 +58,19 @@ class Dungeon(SimpleSqlItem):
 
 class DungeonWaveData(SimpleSqlItem):
     """Dungeon data that can only be computed from waves."""
-    TABLE = 'dungeons'
     KEY_COL = 'dungeon_id'
+
+    @classproperty
+    def TABLE(cls):
+        server = os.environ.get("CURRENT_PIPELINE_SERVER") or ""
+        if server.upper() == "NA":
+            return 'dungeons_na'
+        # elif server.upper() == "JP":
+        #     return 'dungeons_jp'
+        # elif server.upper() == "KR":
+        #    return 'dungeons_kr'
+        else:
+            return 'dungeons'
 
     def __init__(self,
                  dungeon_id: int = None,
@@ -59,8 +83,19 @@ class DungeonWaveData(SimpleSqlItem):
 
 class DungeonRewardData(SimpleSqlItem):
     """Dungeon data that can only be computed from bonus floor text."""
-    TABLE = 'dungeons'
     KEY_COL = 'dungeon_id'
+
+    @classproperty
+    def TABLE(cls):
+        server = os.environ.get("CURRENT_PIPELINE_SERVER") or ""
+        if server.upper() == "NA":
+            return 'dungeons_na'
+        # elif server.upper() == "JP":
+        #     return 'dungeons_jp'
+        # elif server.upper() == "KR":
+        #    return 'dungeons_kr'
+        else:
+            return 'dungeons'
 
     def __init__(self,
                  dungeon_id: int = None,
@@ -83,8 +118,19 @@ class DungeonRewardData(SimpleSqlItem):
 
 class SubDungeon(SimpleSqlItem):
     """Per-difficulty dungeon section."""
-    TABLE = 'sub_dungeons'
     KEY_COL = 'sub_dungeon_id'
+
+    @classproperty
+    def TABLE(cls):
+        server = os.environ.get("CURRENT_PIPELINE_SERVER") or ""
+        if server.upper() == "NA":
+            return 'sub_dungeons_na'
+        # elif server.upper() == "JP":
+        #     return 'sub_dungeons_jp'
+        # elif server.upper() == "KR":
+        #    return 'sub_dungeons_kr'
+        else:
+            return 'sub_dungeons'
 
     @staticmethod
     def from_csd(o: CrossServerDungeon) -> List['SubDungeon']:
@@ -96,13 +142,13 @@ class SubDungeon(SimpleSqlItem):
                 name_ja=sd.jp_sub_dungeon.clean_name,
                 name_en=sd.na_sub_dungeon.clean_name,
                 name_ko=sd.kr_sub_dungeon.clean_name,
-                floors=sd.jp_sub_dungeon.floors,
-                stamina=sd.jp_sub_dungeon.stamina,
-                hp_mult=sd.jp_sub_dungeon.hp_mult,
-                atk_mult=sd.jp_sub_dungeon.atk_mult,
-                def_mult=sd.jp_sub_dungeon.def_mult,
-                s_rank=sd.jp_sub_dungeon.score,
-                technical=sd.jp_sub_dungeon.technical))
+                floors=sd.cur_sub_dungeon.floors,
+                stamina=sd.cur_sub_dungeon.stamina,
+                hp_mult=sd.cur_sub_dungeon.hp_mult,
+                atk_mult=sd.cur_sub_dungeon.atk_mult,
+                def_mult=sd.cur_sub_dungeon.def_mult,
+                s_rank=sd.cur_sub_dungeon.score,
+                technical=sd.cur_sub_dungeon.technical))
         return results
 
     def __init__(self,
@@ -139,8 +185,19 @@ class SubDungeon(SimpleSqlItem):
 
 class SubDungeonWaveData(SimpleSqlItem):
     """Sub-dungeon data that can only be computed from waves."""
-    TABLE = 'sub_dungeons'
     KEY_COL = 'sub_dungeon_id'
+
+    @classproperty
+    def TABLE(cls):
+        server = os.environ.get("CURRENT_PIPELINE_SERVER") or ""
+        if server.upper() == "NA":
+            return 'sub_dungeons_na'
+        # elif server.upper() == "JP":
+        #     return 'sub_dungeons_jp'
+        # elif server.upper() == "KR":
+        #    return 'sub_dungeons_kr'
+        else:
+            return 'sub_dungeons'
 
     @staticmethod
     def from_waveresult(o: ResultFloor, cssd: CrossServerSubDungeon) -> 'SubDungeonWaveData':
@@ -183,8 +240,19 @@ class SubDungeonWaveData(SimpleSqlItem):
 
 class SubDungeonRewardData(SimpleSqlItem):
     """Sub-dungeon data that can only be computed from bonus floor text."""
-    TABLE = 'sub_dungeons'
     KEY_COL = 'sub_dungeon_id'
+
+    @classproperty
+    def TABLE(cls):
+        server = os.environ.get("CURRENT_PIPELINE_SERVER") or ""
+        if server.upper() == "NA":
+            return 'sub_dungeons_na'
+        # elif server.upper() == "JP":
+        #     return 'sub_dungeons_jp'
+        # elif server.upper() == "KR":
+        #    return 'sub_dungeons_kr'
+        else:
+            return 'sub_dungeons'
 
     def __init__(self,
                  sub_dungeon_id: int = None,

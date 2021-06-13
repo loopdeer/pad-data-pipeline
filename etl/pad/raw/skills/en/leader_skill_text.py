@@ -136,6 +136,44 @@ class EnLSTextConverter(EnBaseTextConverter):
                     skill_text += '{} at once'.format(self.attributes_to_str(ls.match_attributes))
         return skill_text
 
+    def scaling_attribute_match_text(self, ls):
+        min_atk = ls.min_atk
+        min_attr = ls.min_attr
+
+        if min_atk < ls.max_atk:
+            if ls.min_atk == 1:
+                min_atk = 1 + (ls.max_atk - ls.min_atk) / (ls.max_attr - ls.min_attr)
+                min_attr += 1
+        else:
+            return self.attribute_match_text(ls)
+
+        skill_text = self.fmt_stats_type_attr_bonus(ls, reduce_join_txt=' and ', skip_attr_all=True,
+                                                    atk=1, rcv=1)
+        skill_text += self.matching_n_or_more_attr(ls.match_attributes, ls.min_attr) + '; '
+
+        skill_text += self.fmt_stats_type_attr_bonus(ls, reduce_join_txt=' and ', skip_attr_all=True,
+                                                    atk=min_atk, shield=0)
+        skill_text += self.matching_n_or_more_attr(ls.match_attributes, min_attr,
+                                                   is_range=ls.max_attr > min_attr)
+
+        if ls.max_atk > min_atk:
+            if ls.match_attributes == [0, 1, 2, 3, 4, 5]:
+                skill_text += ' up to {}x at 5 colors+heal'.format(fmt_mult(ls.max_atk))
+            elif ls.max_attr < 5 and (len(ls.match_attributes) < 5 or 5 in ls.match_attributes):
+                skill_text += ' up to {}x when matching {}'.format(fmt_mult(ls.max_atk), ls.max_attr)
+            else:
+                skill_text += ' up to {}x at '.format(fmt_mult(ls.max_atk))
+                if ls.match_attributes == [0, 1, 2, 3, 4]:
+                    skill_text += '{} colors'.format(ls.max_attr)
+                elif ls.match_attributes == [0, 1, 2, 3, 4, 5]:
+                    skill_text += '{} colors ({}+heal)'.format(ls.max_attr, ls.max_attr - 1)
+                elif len(ls.match_attributes) > ls.max_attr:
+                    skill_text += '{}+ of {} at once'.format(str(ls.max_attr),
+                                                             self.attributes_to_str(ls.match_attributes, concat='or'))
+                else:
+                    skill_text += '{} at once'.format(self.attributes_to_str(ls.match_attributes))
+        return skill_text
+
     def multi_attribute_match_text(self, ls):
         if not ls.match_attributes:
             return ''
@@ -304,10 +342,10 @@ class EnLSTextConverter(EnBaseTextConverter):
             skill_text = self.fmt_multiplier_text(1, ls.atk, 1)
             if ls.bonus_combo:
                 skill_text += ' and increase combo by {}'.format(ls.bonus_combo)
-        elif ls.bonus_combo:
+        else:
             skill_text = 'Increase combo by {}'.format(ls.bonus_combo)
         skill_text += ' when matching {} or more connected '.format(ls.min_match)
-        skill_text += self.fmt_multi_attr(ls.attributes, conj='and') + ' orbs at once'
+        skill_text += self.fmt_multi_attr(ls.attributes, conj='and' if ls.conj_and else 'or') + ' orbs at once'
         return skill_text
 
     def l_match_text(self, ls):
@@ -361,8 +399,10 @@ class EnLSTextConverter(EnBaseTextConverter):
     def color_combo_bonus_damage_text(self, ls):
         if len(ls.attributes) and ls.attributes[1:] != ls.attributes[:-1]:
             skill_text = '{:,} additional true damage when matching {}'.format(ls.bonus_damage,
-                                                                    self.fmt_multi_attr(list(set(ls.attributes)),
-                                                                    conj='or' if ls.min_combo < len(ls.attributes) else 'and'))
+                                                                               self.fmt_multi_attr(
+                                                                                   list(set(ls.attributes)),
+                                                                                   conj='or' if ls.min_combo < len(
+                                                                                       ls.attributes) else 'and'))
         else:
             skill_text = '{:,} additional true damage when matching {} or more'.format(ls.bonus_damage, ls.min_combo)
             if ls.attributes:
@@ -374,8 +414,9 @@ class EnLSTextConverter(EnBaseTextConverter):
     def color_combo_bonus_combo_text(self, ls):
         if len(ls.attributes) and ls.attributes[1:] != ls.attributes[:-1]:
             skill_text = 'Increase combo by {} when matching {}'.format(ls.bonus_combos,
-                                                                    self.fmt_multi_attr(list(set(ls.attributes)),
-                                                                    conj='or' if ls.min_combo < len(ls.attributes) else 'and'))
+                                                                        self.fmt_multi_attr(list(set(ls.attributes)),
+                                                                                            conj='or' if ls.min_combo < len(
+                                                                                                ls.attributes) else 'and'))
         else:
             skill_text = 'Increase combo by {} when matching {} or more'.format(ls.bonus_combos, ls.min_combo)
             if ls.attributes:
@@ -383,6 +424,15 @@ class EnLSTextConverter(EnBaseTextConverter):
             else:
                 skill_text += ' combos'
         return skill_text
+
+    def combo_bonus_damage_text(self, ls):
+        return '{:,} additional true damage when matching {} or more combos'.format(ls.bonus_damage, ls.min_combos)
+
+    def l_match_combo_text(self, ls):
+        skill_text = 'Add {} combos when matching 5'.format(ls.extra_combos)
+        if self.fmt_multi_attr(ls.attributes):
+            skill_text += ' {}'.format(self.fmt_multi_attr(ls.attributes))
+        return skill_text + ' orbs in an L shape'
 
     def full_text(self, text, tags=None):
         tags = tags or []

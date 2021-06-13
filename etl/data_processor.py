@@ -7,7 +7,6 @@ import argparse
 import json
 import logging
 import os
-import time
 
 from pad.common.shared_types import Server
 from pad.db.db_util import DbWrapper
@@ -44,7 +43,9 @@ human_fix_logger = logging.getLogger('human_fix')
 human_fix_logger.setLevel(logging.INFO)
 
 type_name_to_processor = {
-    'DungeonContentProcessor': DungeonContentProcessor
+    'DungeonProcessor': DungeonProcessor,
+    'DungeonContentProcessor': DungeonContentProcessor,
+    'ScheduleProcessor': ScheduleProcessor,
 }
 
 
@@ -74,8 +75,9 @@ def parse_args():
                              help="If true, only load ES and then quit")
     input_group.add_argument("--media_dir", required=False,
                              help="Path to the root folder containing images, voices, etc")
-    input_group.add_argument("--processor", required=False,
-                             help="Specific processor to run.")
+    input_group.add_argument("--processors", required=False,
+                             help="Comma-separated specific processors to run.")
+    input_group.add_argument("--server", default="COMBINED", help="Server to build for")
 
     output_group = parser.add_argument_group("Output")
     output_group.add_argument("--output_dir", required=True,
@@ -124,7 +126,16 @@ def load_data(args):
     kr_database = merged_database.Database(Server.kr, args.input_dir)
     kr_database.load_database()
 
-    cs_database = crossed_data.CrossServerDatabase(jp_database, na_database, kr_database)
+    if input_args.server.lower() == "combined":
+        cs_database = crossed_data.CrossServerDatabase(jp_database, na_database, kr_database, Server.jp)
+    elif input_args.server.lower() == "jp":
+        cs_database = crossed_data.CrossServerDatabase(jp_database, jp_database, jp_database, Server.jp)
+    elif input_args.server.lower() == "na":
+        cs_database = crossed_data.CrossServerDatabase(na_database, na_database, na_database, Server.na)
+    elif input_args.server.lower() == "kr":
+        cs_database = crossed_data.CrossServerDatabase(kr_database, kr_database, kr_database, Server.kr)
+    else:
+        raise ValueError()
 
     if args.media_dir:
         cs_database.load_extra_image_info(args.media_dir)
@@ -143,11 +154,13 @@ def load_data(args):
     db_wrapper = DbWrapper(dry_run)
     db_wrapper.connect(db_config)
 
-    if args.processor:
-        logger.info('Running specific processor {}'.format(args.processor))
-        class_type = type_name_to_processor[args.processor]
-        processor = class_type(cs_database)
-        processor.process(db_wrapper)
+    if args.processors:
+        for processor in args.processors.split(","):
+            processor = processor.strip()
+            logger.info('Running specific processor {}'.format(processor))
+            class_type = type_name_to_processor[processor]
+            processor = class_type(cs_database)
+            processor.process(db_wrapper)
         logger.info('done')
         return
 
@@ -211,14 +224,23 @@ def load_data(args):
 
 
 if __name__ == '__main__':
-    args = parse_args()
-    # This is a hack to make loading ES easier and more frequent.
-    # Remove this once we're done with most of the ES processing.
-    if args.es_dir and args.es_only:
-        load_es_quick_and_die(args)
+    try:
+        input_args = parse_args()
 
-    # This needs to be done after the es_quick check otherwise it will consistently overwrite the fixes file.
-    if os.name != 'nt':
-        human_fix_logger.addHandler(logging.FileHandler('/tmp/dadguide_pipeline_human_fixes.txt', mode='w'))
+        os.environ['CURRENT_PIPELINE_SERVER'] = input_args.server.strip()
 
-    load_data(args)
+        if input_args.server.lower() not in ("combined", "jp", "na", "kr"):
+            raise ValueError("Server must be COMBINED, JP, NA, KR.")
+
+        # This is a hack to make loading ES easier and more frequent.
+        # Remove this once we're done with most of the ES processing.
+        if input_args.es_dir and input_args.es_only:
+            load_es_quick_and_die(input_args)
+
+        # This needs to be done after the es_quick check otherwise it will consistently overwrite the fixes file.
+        if os.name != 'nt':
+            human_fix_logger.addHandler(logging.FileHandler('/tmp/dadguide_pipeline_human_fixes.txt', mode='w'))
+
+        load_data(input_args)
+    finally:
+        del os.environ['CURRENT_PIPELINE_SERVER']

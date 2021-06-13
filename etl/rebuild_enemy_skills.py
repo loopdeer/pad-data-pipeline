@@ -6,7 +6,7 @@ Regenerates the flattened enemy skill list for all monsters.
 import argparse
 import logging
 import os
-from typing import List, Set
+from typing import List
 
 from dadguide_proto.enemy_skills_pb2 import MonsterBehavior, LevelBehavior
 from pad.common.shared_types import Server
@@ -30,6 +30,7 @@ def parse_args():
                             help="Process only this card")
     inputGroup.add_argument("--interactive", required=False,
                             help="Lets you specify a card id on the command line")
+    inputGroup.add_argument("--server", default="JP", help="Server to build for")
 
     outputGroup = parser.add_argument_group("Output")
     outputGroup.add_argument("--output_dir", required=True,
@@ -133,12 +134,12 @@ def process_card(csc: CrossServerCard) -> MonsterBehavior:
     # in the first run, and then gets updated in JP later.
     # TODO: Possibly this should occur in the merged card
     # card.enemy_skill_max_counter = max(card.enemy_skill_max_counter,
-    #                                    csc.jp_card.card.enemy_skill_max_counter)
+    #                                    csc.cur_card.card.enemy_skill_max_counter)
     # card.enemy_skill_counter_increment = max(card.enemy_skill_counter_increment,
-    #                                          csc.jp_card.card.enemy_skill_counter_increment)
+    #                                          csc.cur_card.card.enemy_skill_counter_increment)
     # TODO: That wasn't always correct; probably needs to use the value from whichever ES tree is selected
-    card.enemy_skill_max_counter = csc.jp_card.card.enemy_skill_max_counter
-    card.enemy_skill_counter_increment = csc.jp_card.card.enemy_skill_counter_increment
+    card.enemy_skill_max_counter = csc.cur_card.card.enemy_skill_max_counter
+    card.enemy_skill_counter_increment = csc.cur_card.card.enemy_skill_counter_increment
 
     levels = enemy_skillset_processor.extract_levels(enemy_behavior)
     long_loop = csc.monster_id in LONG_LOOP_MONSTERS
@@ -192,7 +193,7 @@ def process_card(csc: CrossServerCard) -> MonsterBehavior:
             is_death_action = isinstance(b.behavior, ESDeathAction)
             if is_action and is_used and already_in_unused and not is_death_action:
                 unused_actions.append(b)
-        except:
+        except Exception:  # HUH?
             print('oops')
 
     for level_behavior in skill_listings:
@@ -220,8 +221,16 @@ def run(args):
     na_db.load_database(skip_bonus=True, skip_extra=True)
 
     print('merging data')
+    if args.server.lower() == "jp":
+        server = Server.jp
+    elif args.server.lower() == "na":
+        server = Server.na
+    elif args.server.lower() == "kr":
+        server = Server.kr
+    else:
+        raise ValueError("Server must be JP, NA, or KR")
     # Skipping KR database; we don't need it to compute ES
-    cross_db = CrossServerDatabase(jp_db, na_db, na_db)
+    cross_db = CrossServerDatabase(jp_db, na_db, na_db, server)
 
     combined_cards = cross_db.all_cards
 
@@ -266,5 +275,5 @@ def run(args):
 
 
 if __name__ == '__main__':
-    args = parse_args()
-    run(args)
+    input_args = parse_args()
+    run(input_args)

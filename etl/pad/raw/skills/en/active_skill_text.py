@@ -278,7 +278,7 @@ class EnASTextConverter(EnBaseTextConverter):
 
     def double_spawn_orb_convert(self, act):
         skill_text = self.spawn_orb_convert(act)
-        skill_text += 'and create {} '.format(act.amount2)
+        skill_text += ', and create {} '.format(act.amount2)
         skill_text += self.concat_list_and([self.ATTRIBUTES[o] for o in act.orbs2])
         skill_text += ' ' + pluralize('orb', act.amount2)
         if act.orbs != act.excluding_orbs2 and act.excluding_orbs2 != []:
@@ -536,8 +536,17 @@ class EnASTextConverter(EnBaseTextConverter):
         return 'Random {:d} orbs change every {:.1f}s for {:s}' \
             .format(count, speed, pluralize2('turn', turns))
 
-    def self_active_skill_disable(self, turns: int):
-        return 'Disable active skills for {:s}'.format(pluralize2('turn', turns))
+    def ally_active_disable(self, turns: int):
+        return 'Disable team active skills for {:s}'.format(pluralize2('turn', turns))
+
+    def ally_active_delay(self, turns: int):
+        return 'Delay team active skills by {:s}'.format(pluralize2('turn', turns))
+
+    def create_unmatchable(self, act):
+        skill_text = self.fmt_duration(act.duration)
+        if act.orbs:
+            skill_text += " " +self.concat_list_and(self.ATTRIBUTES[i] for i in act.orbs)
+        return skill_text + " orbs are unmatchable."
 
     def two_part_active(self, strs):
         return '; '.join(strs)

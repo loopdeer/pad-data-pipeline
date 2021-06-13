@@ -1,10 +1,10 @@
 import logging
 
 from pad.common import pad_util
-from pad.common.utils import remove_diacritics
 from pad.db.db_util import DbWrapper
 from pad.raw_processor import crossed_data
-from pad.storage.monster import LeaderSkill, ActiveSkill, Monster, Awakening, Evolution, MonsterWithExtraImageInfo
+from pad.storage.monster import LeaderSkill, ActiveSkill, Monster, Awakening, Evolution, MonsterWithExtraImageInfo, \
+    AltMonster
 
 logger = logging.getLogger('processor')
 human_fix_logger = logging.getLogger('human_fix')
@@ -18,7 +18,6 @@ class MonsterProcessor(object):
         logger.info('loading monster data')
         self._process_skills(db)
         self._process_monsters(db)
-        # self._process_auto_override(db)
         self._process_monster_images(db)
         self._process_awakenings(db)
         self._process_evolutions(db)
@@ -42,23 +41,12 @@ class MonsterProcessor(object):
 
     def _process_monsters(self, db):
         logger.info('loading %s monsters', len(self.data.ownable_cards))
-        for m in self.data.ownable_cards:
-            item = Monster.from_csm(m)
+        for m in self.data.all_cards:
+            if 0 < m.monster_id < 19999:
+                item = Monster.from_csm(m)
+                db.insert_or_update(item)
+            item = AltMonster.from_csm(m)
             db.insert_or_update(item)
-
-    def _process_auto_override(self, db: DbWrapper):
-        logger.info('checking for auto name overrides')
-        for m in self.data.ownable_cards:
-            name = m.na_card.card.name
-            name_clean = remove_diacritics(name)
-            if name != name_clean:
-                existing_name = db.get_single_value(
-                    'select name_en_override from monsters where monster_id = {}'.format(m.monster_id),
-                    fail_on_empty=False)
-                if not existing_name:
-                    logger.info('applying name override (%s): %s -> %s', m.monster_id, name, name_clean)
-                    db.update_item('update monsters set name_en_override = "{}" where monster_id = {}'.format(
-                        name_clean, m.monster_id))
 
     def _process_monster_images(self, db):
         logger.info('monster images, hq_count=%s, anim_count=%s',
@@ -82,11 +70,11 @@ class MonsterProcessor(object):
                     db.insert_or_update(item)
                 except (KeyboardInterrupt, SystemExit):
                     raise
-                except:
+                except Exception:
                     human_fix_logger.fatal('Failed to insert item (probably new awakening): %s',
                                            pad_util.json_string_dump(item, pretty=True))
 
-            sql = 'SELECT COUNT(*) FROM awakenings WHERE monster_id = {}'.format(m.monster_id)
+            sql = 'SELECT COUNT(*) FROM {} WHERE monster_id = {}'.format(Awakening.TABLE, m.monster_id)
             stored_awakening_count = db.get_single_value(sql, op=int)
             if len(items) < stored_awakening_count:
                 human_fix_logger.error('Incorrect awakening count for %s, got %s wanted %s',
@@ -95,11 +83,9 @@ class MonsterProcessor(object):
     def _process_evolutions(self, db):
         logger.info('loading evolutions')
         for m in self.data.ownable_cards:
-            if not m.jp_card.card.ancestor_id:
+            if not m.cur_card.card.ancestor_id:
                 continue
 
-            ancestor_id = m.jp_card.no_to_id(m.jp_card.card.ancestor_id)
-            ancestor = self.data.card_by_monster_id(ancestor_id)
-            item = Evolution.from_csm(m, ancestor)
+            item = Evolution.from_csm(m)
             if item:
                 db.insert_or_update(item)

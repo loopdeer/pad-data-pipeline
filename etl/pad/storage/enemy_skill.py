@@ -1,15 +1,31 @@
+import os
+
 from dadguide_proto.enemy_skills_pb2 import MonsterBehavior
+from pad.common.utils import classproperty
 from pad.db.sql_item import SimpleSqlItem
 from pad.raw_processor.crossed_data import CrossServerESInstance
 from pad.raw.skills.jp.enemy_skill_text import JpESTextConverter
 from pad.raw.skills.en.enemy_skill_text import EnESTextConverter
 from pad.raw.skills.emoji_en.enemy_skill_text import EnEmojiESTextConverter
-#from pad.raw.skills.kr.enemy_skill_text import KrESTextConverter
+
+
+# from pad.raw.skills.kr.enemy_skill_text import KrESTextConverter
 
 class EnemySkill(SimpleSqlItem):
     """Enemy skill data."""
-    TABLE = 'enemy_skills'
     KEY_COL = 'enemy_skill_id'
+
+    @classproperty
+    def TABLE(cls):
+        server = os.environ.get("CURRENT_PIPELINE_SERVER") or ""
+        if server.upper() == "NA":
+            return 'enemy_skills_na'
+        # elif server.upper() == "JP":
+        #    return 'enemy_skills_jp'
+        # elif server.upper() == "KR":
+        #    return 'enemy_skills_kr'
+        else:
+            return 'enemy_skills'
 
     @staticmethod
     def from_json(o):
@@ -27,7 +43,7 @@ class EnemySkill(SimpleSqlItem):
 
     @staticmethod
     def from_cseb(o: CrossServerESInstance) -> 'EnemySkill':
-        exemplar = o.jp_skill.behavior
+        exemplar = o.cur_skill.behavior
 
         has_attack = hasattr(exemplar, 'attack') and exemplar.attack
         min_hits = exemplar.attack.min_hits if has_attack else 0
@@ -36,9 +52,9 @@ class EnemySkill(SimpleSqlItem):
 
         ja_desc = exemplar.full_description(JpESTextConverter())
         en_desc = exemplar.full_description(EnESTextConverter())
-       #ko_desc = exemplar.full_description(KrESTextConverter())
+        # ko_desc = exemplar.full_description(KrESTextConverter())
         en_emoji_desc = exemplar.full_description(EnEmojiESTextConverter())
-        
+
         return EnemySkill(
             enemy_skill_id=o.enemy_skill_id,
             name_ja=o.jp_skill.name,
@@ -84,8 +100,19 @@ class EnemySkill(SimpleSqlItem):
 
 class EnemyData(SimpleSqlItem):
     """Enemy skill data."""
-    TABLE = 'enemy_data'
     KEY_COL = 'enemy_id'
+
+    @classproperty
+    def TABLE(cls):
+        server = os.environ.get("CURRENT_PIPELINE_SERVER") or ""
+        if server.upper() == "NA":
+            return 'enemy_data_na'
+        # elif server.upper() == "JP":
+        #    return 'enemy_data_jp'
+        # elif server.upper() == "KR":
+        #    return 'enemy_data_kr'
+        else:
+            return 'enemy_data'
 
     @staticmethod
     def from_mb(o: MonsterBehavior, status: int) -> 'EnemyData':

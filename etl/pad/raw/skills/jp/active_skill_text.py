@@ -1,6 +1,4 @@
 from pad.raw.skills.jp.skill_common import *
-from pad.raw.skills.en.active_skill_text import EnASTextConverter as BaseASTextConverter
-
 
 def fmt_mult(x):
     return str(round(float(x), 2)).rstrip('0').rstrip('.')
@@ -276,7 +274,7 @@ class JpASTextConverter(JpBaseTextConverter):
             return s_text.format(to_orbs, act.amount)
 
     def double_spawn_orb_convert(self, act):
-        s_text = self.spawn_orb_convert(act)+"。"
+        s_text = self.spawn_orb_convert(act) + "。"
         to_orbs = self.attributes_to_str(act.orbs2)
         excl_orbs = self.attributes_to_str(set(act.excluding_orbs2) - set(act.orbs2))
         if act.orbs2 != act.excluding_orbs2 and act.excluding_orbs2 != []:
@@ -339,6 +337,11 @@ class JpASTextConverter(JpBaseTextConverter):
                 skill_text += '{}ドロップが{}％落ちやすくなる'.format(self.attributes_to_str(act.orbs), rate)
             else:
                 skill_text += '{}が{}％の確率で落ちてくる'.format(self.attributes_to_str(act.orbs), rate)
+        return skill_text
+
+    def no_orb_skyfall_convert(self, act):
+        skill_text = self.fmt_duration(act.duration)
+        skill_text += 'no {} orbs will appear'.format(self.concat_list_and(self.ATTRIBUTES[i] for i in act.orbs))
         return skill_text
 
     def random_nuke_convert(self, act):
@@ -417,6 +420,7 @@ class JpASTextConverter(JpBaseTextConverter):
             orb_count += len(x)
 
         skill_text = ''
+        shape = "<UNDEFINED>"
         if orb_count == 4:
             if len(board[0]) == len(board[4]) == 2:
                 skill_text += '盤面4隅に{}ドロップを1個ずつ生成。'.format(self.ATTRIBUTES[act.attribute])
@@ -506,8 +510,16 @@ class JpASTextConverter(JpBaseTextConverter):
         return '{}ターンの間、ランダムで{}箇所のマスがが{}秒毎に変化する' \
             .format(turns, count, speed)
 
-    def self_active_skill_disable(self, turns: int):
+    def ally_active_disable(self, turns: int):
         return '{}ターンの間、スキル使用不可。'.format(turns)
+
+    def ally_active_delay(self, turns: int):
+        return '味方スキルが{}ターン減少。'.format(turns)
+
+    def create_unmatchable(self, act):
+        skill_text = self.fmt_duration(act.duration) + self.concat_list_and(self.ATTRIBUTES[i] for i in act.orbs)
+        skill_text += 'ドロップが消せなくなる。'
+        return skill_text
 
     def two_part_active(self, strs):
         return '。'.join(strs)

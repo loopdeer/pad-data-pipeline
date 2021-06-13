@@ -1469,19 +1469,20 @@ class LSRainbowMultPlusShield(LeaderSkill):
     skill_type = 170
 
     def __init__(self, ms: MonsterSkill):
-        data = merge_defaults(ms.data, [0, 0, 100, 0])
+        data = merge_defaults(ms.data, [0, 0, 100, 0, 0, 5])
         self.match_attributes = binary_con(data[0])
         self.min_attr = data[1]
-        self.max_attr = self.min_attr
+        self.max_attr = 5
         self.min_atk = mult(data[2])
-        self.max_atk = self.min_atk
+        self.atk_step = mult(data[4])
+        self.max_atk = self.min_atk + self.atk_step * (5 - data[5])
         self.min_rcv = 1
         self.max_rcv = 1
         shield = mult(data[3])
-        super().__init__(170, ms, atk=self.min_atk, shield=shield)
+        super().__init__(170, ms, atk=self.max_atk, shield=shield)
 
     def text(self, converter) -> str:
-        return converter.attribute_match_text(self)
+        return converter.scaling_attribute_match_text(self)
 
 
 class LSMatchAttrPlusShield(LeaderSkill):
@@ -1542,23 +1543,19 @@ class LSFixedMovementTime(LeaderSkill):
     skill_type = 178
 
     def __init__(self, ms: MonsterSkill):
-        data = merge_defaults(ms.data, [0, 0, 0, 100, 100, 100])
+        data = merge_defaults(ms.data, [0, 0, 0, 100, 100, 100, 0, 0])
         self.time = data[0]
-        self.tags = []
+        self.tags = [(Tag.FIXED_TIME, self.time)]
         self.attributes = binary_con(data[1])
         self.types = binary_con(data[2])
-
-        # TODO: this needs to be overhauled, just accept the value here if it != 0.
-        if self.time == 0:
-            # Ignore this case; bad skill
-            pass
-
-        self.tags.append((Tag.FIXED_TIME, self.time))
 
         hp = multi_floor(data[3])
         atk = multi_floor(data[4])
         rcv = multi_floor(data[5])
-        super().__init__(178, ms, hp=hp, atk=atk, rcv=rcv)
+        self.reduction_attributes = binary_con(data[6])
+        shield = mult(data[7])
+
+        super().__init__(178, ms, hp=hp, atk=atk, rcv=rcv, shield=shield)
 
     def text(self, converter) -> str:
         return converter.passive_stats_text(self)
@@ -1653,6 +1650,7 @@ class LSBlobMatchBonusCombo(LeaderSkill):
         self.min_match = data[1]
         self.bonus_combo = data[3]
         atk = multi_floor(data[2])
+        self.conj_and = True
         super().__init__(192, ms, atk=atk, extra_combos=self.bonus_combo)
 
     def text(self, converter) -> str:
@@ -1782,6 +1780,7 @@ class LSColorComboBonusCombo(LeaderSkill):
     def text(self, converter) -> str:
         return converter.color_combo_bonus_combo_text(self)
 
+
 class LSHeartCrossCombo(LeaderSkill):
     skill_type = 209
 
@@ -1792,6 +1791,7 @@ class LSHeartCrossCombo(LeaderSkill):
 
     def text(self, converter) -> str:
         return converter.heart_cross_combo_text(self)
+
 
 class LSColorCrossCombo(LeaderSkill):
     skill_type = 210
@@ -1804,6 +1804,46 @@ class LSColorCrossCombo(LeaderSkill):
 
     def text(self, converter) -> str:
         return converter.color_cross_combo_text(self)
+
+
+class LSBlobMatchMultiAttrBonusCombo(LeaderSkill):
+    skill_type = 219
+
+    def __init__(self, ms: MonsterSkill):
+        data = merge_defaults(ms.data, [0, 0, 0])
+        self.attributes = binary_con(data[0])
+        self.min_match = data[1]
+        self.bonus_combo = data[2]
+        self.conj_and = False
+        super().__init__(219, ms, extra_combos=self.bonus_combo)
+
+    def text(self, converter) -> str:
+        return converter.multi_mass_match_text(self)
+
+
+class LSLMatchComboBoost(LeaderSkill):
+    skill_type = 220
+
+    def __init__(self, ms: MonsterSkill):
+        data = merge_defaults(ms.data, [0, 0])
+        self.attributes = binary_con(data[0])
+        super().__init__(220, ms, extra_combos=data[1])
+
+    def text(self, converter) -> str:
+        return converter.l_match_combo_text(self)
+
+
+class LSComboBonusDamage(LeaderSkill):
+    skill_type = 223
+
+    def __init__(self, ms: MonsterSkill):
+        data = merge_defaults(ms.data, [0, 0])
+        self.min_combos = data[0]
+        super().__init__(223, ms, bonus_damage=data[1])
+
+    def text(self, converter) -> str:
+        return converter.combo_bonus_damage_text(self)
+
 
 def convert(skill_list: List[MonsterSkill]):
     results = {}
@@ -1954,4 +1994,7 @@ ALL_LEADER_SKILLS = [
     LSColorComboBonusCombo,
     LSHeartCrossCombo,
     LSColorCrossCombo,
+    LSBlobMatchMultiAttrBonusCombo,
+    LSLMatchComboBoost,
+    LSComboBonusDamage,
 ]
